@@ -46,7 +46,8 @@ import java.util.Map;
  * </p>
  * 
  * @author amit bhayani
- * 
+ * @author afe (aferreiraguido@gmail.com)
+ *
  */
 public interface Management {
 
@@ -143,10 +144,10 @@ public interface Management {
 	 * @throws Exception
 	 */
 	public void removeAllResourses() throws Exception;
-	
+
 	/**
 	 * Add new {@link Server}.
-	 * 
+	 *
 	 * @param serverName
 	 *            name of the Server. Should be unique name
 	 * @param hostAddress
@@ -168,7 +169,39 @@ public interface Management {
 	 *             taken or some other server already has same ip:port
 	 */
 	public Server addServer(String serverName, String hostAddress, int port, IpChannelType ipChannelType, boolean acceptAnonymousConnections,
-			int maxConcurrentConnectionsCount, String[] extraHostAddresses) throws Exception;
+							int maxConcurrentConnectionsCount, String[] extraHostAddresses) throws Exception;
+
+	/**
+	 * Add new {@link Server}.
+	 *
+	 * @param serverName
+	 *            name of the Server. Should be unique name
+	 * @param hostAddress
+	 *            IP address that this server will bind to
+	 * @param port
+	 *            port that this server will bind to
+	 * @param ipChannelType
+	 *            IP channel type: SCTP or TCP
+	 * @param acceptAnonymousConnections
+	 *            true: this Server accepts Anonymous connections, false: no
+	 * @param maxConcurrentConnectionsCount
+	 *            A count of concurrent connections that can accept a Server. 0 means an unlimited count.
+	 * @param maxSctpInputStreams
+	 *            Maximum amount of input streams for a particular sctp association
+	 * @param maxSctpOutputStreams
+	 *            Maximum amount of output streams for a particular sctp association
+	 * @param extraHostAddresses
+	 *            When SCTP multi-homing configuration extra IP addresses can be put here
+	 *            If multi-homing absence this parameter can be null
+	 * @return new Server instance
+	 * @throws Exception
+	 *             Exception if management not started or server name already
+	 *             taken or some other server already has same ip:port
+	 */
+	public Server addServer(String serverName, String hostAddress, int port, IpChannelType ipChannelType,
+							boolean acceptAnonymousConnections, int maxConcurrentConnectionsCount,
+							int maxSctpInputStreams, int maxSctpOutputStreams,
+							String[] extraHostAddresses) throws Exception;
 
 	/**
 	 * Add new {@link Server}. Server can not accept anonymous connections.

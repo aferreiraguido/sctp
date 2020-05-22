@@ -190,13 +190,6 @@ public class AssociationImpl implements Association {
 	/**
 	 * Creating an ANONYMOUS_SERVER Association
 	 * 
-	 * @param hostAddress
-	 * @param hostPort
-	 * @param peerAddress
-	 * @param peerPort
-	 * @param serverName
-	 * @param assocName
-	 * @param ipChannelType
 	 */
 	protected AssociationImpl(String peerAddress, int peerPort, String serverName, IpChannelType ipChannelType,
 			ServerImpl server) {

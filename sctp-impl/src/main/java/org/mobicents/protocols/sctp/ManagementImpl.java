@@ -57,6 +57,7 @@ import org.mobicents.protocols.sctp.netty.NettySctpManagementImpl;
 
 /**
  * @author amit bhayani
+ * @author afe (aferreiraguido@gmail.com)
  * 
  */
 public class ManagementImpl implements Management {
@@ -291,12 +292,12 @@ public class ManagementImpl implements Management {
 						.append("_").append(PERSIST_FILE_NAME);
 			}
 
-			logger.info(String.format("SCTP configuration file path %s", persistFile.toString()));
+			logger.info(String.format("SCTP configuration file path '%s'", persistFile.toString()));
 
 			try {
 				this.load();
 			} catch (FileNotFoundException e) {
-				logger.warn(String.format("Failed to load the SCTP configuration file. \n%s", e.getMessage()));
+				logger.warn("Failed to load the SCTP configuration file.", e);
 			}
 
 			if (!this.singleThread) {
@@ -553,16 +554,20 @@ public class ManagementImpl implements Management {
 	}
 
 	public ServerImpl addServer(String serverName, String hostAddress, int port) throws Exception {
-		return addServer(serverName, hostAddress, port, IpChannelType.SCTP, false, 0, null);
+		return addServer(serverName, hostAddress, port, IpChannelType.SCTP, false, 0, 10, 10, null);
 	}
 
 	public Server addServer(String serverName, String hostAddress, int port, IpChannelType ipChannelType, String[] extraHostAddresses) throws Exception {
-		return addServer(serverName, hostAddress, port, ipChannelType, false, 0, extraHostAddresses);
+		return addServer(serverName, hostAddress, port, ipChannelType, false, 0, 10, 10, extraHostAddresses);
 	}
 
 	public ServerImpl addServer(String serverName, String hostAddress, int port, IpChannelType ipChannelType, boolean acceptAnonymousConnections,
 			int maxConcurrentConnectionsCount, String[] extraHostAddresses) throws Exception {
+		return addServer(serverName, hostAddress, port, ipChannelType, acceptAnonymousConnections, maxConcurrentConnectionsCount, 10, 10, extraHostAddresses);
+	}
 
+	public ServerImpl addServer(String serverName, String hostAddress, int port, IpChannelType ipChannelType, boolean acceptAnonymousConnections,
+		int maxConcurrentConnectionsCount, int maxInputSctpStreams, int maxOutputSctpStreams, String[] extraHostAddresses) throws Exception {
 		if (!this.started) {
 			throw new Exception(String.format("Management=%s not started", this.name));
 		}
@@ -592,8 +597,8 @@ public class ManagementImpl implements Management {
 				}
 			}
 
-			ServerImpl server = new ServerImpl(serverName, hostAddress, port, ipChannelType, acceptAnonymousConnections, maxConcurrentConnectionsCount,
-					extraHostAddresses);
+			ServerImpl server = new ServerImpl(serverName, hostAddress, port, ipChannelType, acceptAnonymousConnections,
+				maxConcurrentConnectionsCount, maxInputSctpStreams, maxOutputSctpStreams, extraHostAddresses);
 			server.setManagement(this);
 
 			FastList<Server> newServers = new FastList<Server>();

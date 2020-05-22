@@ -29,7 +29,11 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.List;
+import java.util.Set;
 
+import com.sun.nio.sctp.SctpSocketOption;
+import com.sun.nio.sctp.SctpStandardSocketOptions;
+import io.netty.channel.sctp.SctpChannelOption;
 import javolution.util.FastList;
 import javolution.xml.XMLFormat;
 import javolution.xml.stream.XMLStreamException;
@@ -40,6 +44,8 @@ import org.mobicents.protocols.api.IpChannelType;
 import org.mobicents.protocols.api.Server;
 
 import com.sun.nio.sctp.SctpServerChannel;
+
+import static io.netty.channel.sctp.SctpChannelOption.SCTP_INIT_MAXSTREAMS;
 
 /**
  * @author amit bhayani
@@ -61,6 +67,9 @@ public class ServerImpl implements Server {
     private static final String ACCEPT_ANONYMOUS_CONNECTIONS = "acceptAnonymousConnections";
     private static final String MAX_CONCURRENT_CONNECTIONS_COUNT = "maxConcurrentConnectionsCount";
 
+	private static final String MAX_INPUT_STREAMS = "maxInputStreams";
+	private static final String MAX_OUTPUT_STREAMS = "maxOutputStreams";
+
 	private static final String STARTED = "started";
 
 	private static final String EXTRA_HOST_ADDRESS_SIZE = "extraHostAddresseSize";
@@ -73,6 +82,9 @@ public class ServerImpl implements Server {
 	private boolean acceptAnonymousConnections;
 	private int maxConcurrentConnectionsCount;
 	private String[] extraHostAddresses;
+
+	private int maxInputStreams;
+	private int maxOutputStreams;
 
 	private ManagementImpl management = null;
 
@@ -92,19 +104,23 @@ public class ServerImpl implements Server {
 
 	/**
 	 * @param name
-	 * @param ip
-	 * @param port
+	 * ...
 	 * @throws IOException
 	 */
-	public ServerImpl(String name, String hostAddress, int hostport, IpChannelType ipChannelType, boolean acceptAnonymousConnections,
-			int maxConcurrentConnectionsCount, String[] extraHostAddresses) throws IOException {
+	public ServerImpl(String name, String hostAddress, int hostport, IpChannelType ipChannelType,
+					  boolean acceptAnonymousConnections, int maxConcurrentConnectionsCount,
+					  int maxInputSctpStreams, int maxOutputSctpStreams,
+					  String[] extraHostAddresses) throws IOException {
 		super();
+
 		this.name = name;
 		this.hostAddress = hostAddress;
 		this.hostport = hostport;
 		this.ipChannelType = ipChannelType;
 		this.acceptAnonymousConnections = acceptAnonymousConnections;
 		this.maxConcurrentConnectionsCount = maxConcurrentConnectionsCount;
+		this.maxInputStreams = maxInputSctpStreams;
+		this.maxOutputStreams = maxOutputSctpStreams;
 		this.extraHostAddresses = extraHostAddresses;
 	}
 
@@ -183,13 +199,17 @@ public class ServerImpl implements Server {
 		this.serverChannelSctp.bind(isa);
 		if (this.extraHostAddresses != null) {
 			for (String s : extraHostAddresses) {
-
 				this.serverChannelSctp.bindAddress(InetAddress.getByName(s));
 			}
 		}
 
+		// Set maximum streams
+		SctpStandardSocketOptions.InitMaxStreams initMaxStreams =
+			SctpStandardSocketOptions.InitMaxStreams.create(this.maxInputStreams, this.maxOutputStreams);
+		serverChannelSctp.setOption(SctpStandardSocketOptions.SCTP_INIT_MAXSTREAMS, initMaxStreams);
+
 		if (logger.isInfoEnabled()) {
-			logger.info(String.format("SctpServerChannel bound to=%s ", serverChannelSctp.getAllLocalAddresses()));
+			logger.info(String.format("SctpServerChannel bound to=%s", serverChannelSctp.getAllLocalAddresses()));
 		}
 	}
 
@@ -234,7 +254,23 @@ public class ServerImpl implements Server {
 	public List<Association> getAnonymAssociations() {
 		return this.anonymAssociations.unmodifiable();
 	}
-	
+
+	public int getMaxInputStreams() {
+		return maxInputStreams;
+	}
+
+	public void setMaxInputStreams(int maxInputStreams) {
+		this.maxInputStreams = 	maxInputStreams;
+	}
+
+	public int getMaxOutputStreams() {
+		return maxOutputStreams;
+	}
+
+	public void setMaxOutputStreams(int maxOutputStreams) {
+		this.maxOutputStreams = 	maxOutputStreams;
+	}
+
 	protected AbstractSelectableChannel getIpChannel() {
 		if (this.ipChannelType == IpChannelType.SCTP)
 			return this.serverChannelSctp;
@@ -310,6 +346,7 @@ public class ServerImpl implements Server {
         sb.append("Server [name=").append(this.name).append(", started=").append(this.started).append(", hostAddress=").append(this.hostAddress)
                 .append(", hostPort=").append(hostport).append(", ipChannelType=").append(ipChannelType).append(", acceptAnonymousConnections=")
                 .append(this.acceptAnonymousConnections).append(", maxConcurrentConnectionsCount=").append(this.maxConcurrentConnectionsCount)
+				.append(", maxInputStreams=").append(maxInputStreams).append(", maxOutputStreams=").append(maxOutputStreams)
                 .append(", associations(anonymous does not included)=[");
 
 		for (FastList.Node<String> n = this.associations.head(), end = this.associations.tail(); (n = n.getNext()) != end;) {
@@ -352,6 +389,9 @@ public class ServerImpl implements Server {
 			server.acceptAnonymousConnections = xml.getAttribute(ACCEPT_ANONYMOUS_CONNECTIONS, false);
             server.maxConcurrentConnectionsCount = xml.getAttribute(MAX_CONCURRENT_CONNECTIONS_COUNT, 0);
 
+            server.maxInputStreams = xml.getAttribute(MAX_INPUT_STREAMS, 20);
+            server.maxInputStreams = xml.getAttribute(MAX_INPUT_STREAMS, 20);
+
 			int extraHostAddressesSize = xml.getAttribute(EXTRA_HOST_ADDRESS_SIZE, 0);
 			server.extraHostAddresses = new String[extraHostAddressesSize];
 			
@@ -371,6 +411,9 @@ public class ServerImpl implements Server {
 			xml.setAttribute(IPCHANNEL_TYPE, server.ipChannelType.getCode());
             xml.setAttribute(ACCEPT_ANONYMOUS_CONNECTIONS, server.acceptAnonymousConnections);
             xml.setAttribute(MAX_CONCURRENT_CONNECTIONS_COUNT, server.maxConcurrentConnectionsCount);
+
+            xml.setAttribute(MAX_INPUT_STREAMS, server.maxInputStreams);
+            xml.setAttribute(MAX_OUTPUT_STREAMS, server.maxOutputStreams);
 
 			xml.setAttribute(EXTRA_HOST_ADDRESS_SIZE,
 					server.extraHostAddresses != null ? server.extraHostAddresses.length : 0);
